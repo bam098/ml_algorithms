@@ -22,14 +22,14 @@ print "Creating the bag of words..."
 vectorizer = CountVectorizer(analyzer="word", tokenizer=None, preprocessor=None, stop_words=None, max_features=5000, vocabulary=vocab)
 train_data_features = vectorizer.transform(np.array(clean_train_reviews['review']))
 X = train_data_features.toarray()
-y = clean_train_reviews['sentiment']
+y = np.transpose(np.matrix(clean_train_reviews['sentiment']))
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
 X_utrain = vectorizer.transform(np.array(clean_utrain_reviews['review'])).toarray()
 
 print "\n"
 print "Creating the model..."
 clf = MultinomialNB()
-clf.fit(X_train, y_train)
+clf.fit(X_train, np.ravel(y_train))
 
 print "\n"
 print "Testing the model..."
@@ -42,4 +42,23 @@ print('Accuracy: %f' % acc)
 
 print "\n"
 print "Labeling unlabeled data with current model..."
+y_pred = []
+for i in xrange(len(X_utrain)):
+	pred = clf.predict(X_utrain[i])
+	y_pred.append(pred)
+y_utrain = np.array(y_pred)	
 
+print "\n"
+print "Creating the model with labeled and unlabeled training data..."
+X_full = np.concatenate((X_train, X_utrain), axis=0)
+y_full = np.concatenate((y_train, y_utrain), axis=0)
+clf.fit(X_full, np.ravel(y_full))
+
+print "\n"
+print "Testing the model..."
+y_pred = []
+for i in xrange(len(X_test)):
+    pred = clf.predict(X_test[i])
+    y_pred.append(pred)
+acc = accuracy_score(y_test, np.asarray(y_pred))
+print('Accuracy: %f' % acc)
