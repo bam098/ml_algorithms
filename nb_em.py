@@ -5,6 +5,13 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import accuracy_score
 
+def test_model(X, clf):
+	y_pred = []
+	for i in xrange(len(X)):
+		pred = clf.predict(X[i])
+		y_pred.append(pred)
+	return accuracy_score(y_test, np.asarray(y_pred))
+
 print "\n"
 print "Loading clean reviews..."
 clean_train_reviews = pd.DataFrame.from_csv("data/labeledTrainDataClean.csv")
@@ -30,35 +37,31 @@ print "\n"
 print "Creating the model..."
 clf = MultinomialNB()
 clf.fit(X_train, np.ravel(y_train))
-
 print "\n"
 print "Testing the model..."
-y_pred = []
-for i in xrange(len(X_test)):
-    pred = clf.predict(X_test[i])
-    y_pred.append(pred)
-acc = accuracy_score(y_test, np.asarray(y_pred))
+acc = test_model(X_test, clf)
 print('Accuracy: %f' % acc)
 
-print "\n"
-print "Labeling unlabeled data with current model..."
-y_pred = []
-for i in xrange(len(X_utrain)):
-	pred = clf.predict(X_utrain[i])
-	y_pred.append(pred)
-y_utrain = np.array(y_pred)	
+epsilon = 0.000001
+current_acc = -1.0
+while np.abs(acc - current_acc) > epsilon:
+	current_acc = acc
 
-print "\n"
-print "Creating the model with labeled and unlabeled training data..."
-X_full = np.concatenate((X_train, X_utrain), axis=0)
-y_full = np.concatenate((y_train, y_utrain), axis=0)
-clf.fit(X_full, np.ravel(y_full))
+	print "\n"
+	print "Labeling unlabeled data with current model..."
+	y_pred = []
+	for i in xrange(len(X_utrain)):
+		pred = clf.predict(X_utrain[i])
+		y_pred.append(pred)
+	y_utrain = np.array(y_pred)	
 
-print "\n"
-print "Testing the model..."
-y_pred = []
-for i in xrange(len(X_test)):
-    pred = clf.predict(X_test[i])
-    y_pred.append(pred)
-acc = accuracy_score(y_test, np.asarray(y_pred))
-print('Accuracy: %f' % acc)
+	print "\n"
+	print "Creating the model with labeled and unlabeled training data..."
+	X_full = np.concatenate((X_train, X_utrain), axis=0)
+	y_full = np.concatenate((y_train, y_utrain), axis=0)
+	clf.fit(X_full, np.ravel(y_full))
+
+	print "\n"
+	print "Testing the model..."
+	acc = test_model(X_test, clf)
+	print('Accuracy: %f' % acc)
